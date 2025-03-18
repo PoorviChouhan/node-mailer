@@ -7,7 +7,7 @@ const app = express();
 const PORT = 8000;
 
 // Middleware
-app.use(cors()); // Allows frontend requests
+app.use(cors({ origin: "http://localhost:3000" })) // Allows frontend requests
 app.use(express.json()); // Parses JSON requests
 
 // Nodemailer Transporter Setup
