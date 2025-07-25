@@ -2,48 +2,136 @@ require("dotenv").config();
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = 8000;
 
 // Middleware
-app.use(cors({ origin: "http://localhost:3000" })) // Allows frontend requests
-app.use(express.json()); // Parses JSON requests
+app.use(cors({ origin: "http://localhost:3000" }));
+app.use(express.json());
 
-// Nodemailer Transporter Setup
+// Multer setup for file upload (Career form)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = "./uploads";
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + "-" + file.originalname;
+    cb(null, uniqueName);
+  },
+});
+const upload = multer({ storage });
+
+// Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-        rejectUnauthorized: false, // This bypasses self-signed certificate issues
-    },
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
-// Contact Form Route
+// ----------- CONTACT FORM ROUTE -----------
 app.post("/contact", async (req, res) => {
-    const { name, email,mobile, subject, message } = req.body;
+  const { name, email, mobile, subject, message } = req.body;
 
-    if (!name || !email || !subject || !mobile) {
-        return res.status(400).json({ success: false, error: "All fields are required!" });
-    }
+  if (!name || !email || !subject || !mobile) {
+    return res
+      .status(400)
+      .json({ success: false, error: "All fields are required!" });
+  }
 
-    const mailOptions = {
-        from: email, // Sender's email
-        to: process.env.RECEIVER_EMAIL, // Your email to receive messages
-        subject: `New Contact Form Submission: ${subject}`,
-        text: `You received a new message from:\n\nName: ${name}\nEmail: ${email}\nMobile No.: ${mobile}\n\nMessage:\n${message}`,
-    };
+  const mailOptions = {
+    from: email,
+    to: process.env.RECEIVER_EMAIL,
+    subject: `New Contact Form Submission: ${subject}`,
+    text: `You received a new message:\n\nName: ${name}\nEmail: ${email}\nMobile: ${mobile}\n\nMessage:\n${message}`,
+  };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        res.json({ success: true, message: "Message sent successfully!" });
-    } catch (error) {
-        console.error("Error sending email:", error);
-        res.status(500).json({ success: false, error: "Failed to send message." });
-    }
+  try {
+    await transporter.sendMail(mailOptions);
+    res.json({ success: true, message: "Message sent successfully!" });
+  } catch (error) {
+    console.error("Error sending contact form email:", error);
+    res.status(500).json({ success: false, error: "Failed to send message." });
+  }
+});
+
+// ----------- CAREER FORM ROUTE (with file upload) -----------
+app.post("/career", upload.single("resume"), async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    position,
+    experience,
+    qualification,
+    passingYear,
+    message,
+  } = req.body;
+
+  if (
+    !name ||
+    !email ||
+    !phone ||
+    !position ||
+    !qualification ||
+    !passingYear ||
+    !req.file
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: "All required fields including resume must be provided!",
+    });
+  }
+
+  const mailOptions = {
+    from: email,
+    to: process.env.RECEIVER_EMAIL,
+    subject: `New Career Application for: ${position}`,
+    text: `You received a new career application:\n\n
+Name: ${name}
+Email: ${email}
+Phone: ${phone}
+Position: ${position}
+Experience: ${experience}
+Qualification: ${qualification}
+Year of Passing: ${passingYear}
+Message: ${message}
+    `,
+    attachments: [
+      {
+        filename: req.file.originalname,
+        path: req.file.path,
+      },
+    ],
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.json({
+      success: true,
+      message: "Application submitted successfully!",
+    });
+
+    // Optional: Delete resume after sending
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error("Failed to delete resume:", err);
+    });
+  } catch (error) {
+    console.error("Error sending career application email:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to send application." });
+  }
 });
 
 // Start Server
