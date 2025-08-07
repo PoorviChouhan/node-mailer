@@ -29,7 +29,9 @@ const upload = multer({ storage });
 
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.zoho.in",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -50,7 +52,7 @@ app.post("/contact", async (req, res) => {
   }
 
   const mailOptions = {
-    from: email,
+    from: process.env.EMAIL_USER,
     to: process.env.RECEIVER_EMAIL,
     subject: `New Contact Form Submission: ${subject}`,
     text: `You received a new message:\n\nName: ${name}\nEmail: ${email}\nMobile: ${mobile}\n\nMessage:\n${message}`,
@@ -94,7 +96,7 @@ app.post("/career", upload.single("resume"), async (req, res) => {
   }
 
   const mailOptions = {
-    from: email,
+    from: process.env.EMAIL_USER,
     to: process.env.RECEIVER_EMAIL,
     subject: `New Career Application for: ${position}`,
     text: `You received a new career application:\n\n
