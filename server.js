@@ -3,14 +3,14 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
 
 const app = express();
 const PORT = 8000;
 
 // Middleware
-app.use(cors({ origin: "https://panoramasoftwares.com" }));
+// app.use(cors({ origin: "https://panoramasoftwares.com" }));
+app.use(cors({ origin: "http://localhost:3000" }));
 app.use(express.json());
 
 // Multer setup for file upload (Career form)
@@ -27,17 +27,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Nodemailer transporter configuration
+// Nodemailer transporter configuration for Gmail
 const transporter = nodemailer.createTransport({
-  host: "smtp.zoho.in",
-  port: 465,
-  secure: true,
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
   },
 });
 
