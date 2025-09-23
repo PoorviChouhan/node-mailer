@@ -9,8 +9,14 @@ const app = express();
 const PORT = 8000;
 
 // Middleware
-app.use(cors({ origin: "https://panoramasoftwares.com" }));
+app.use(cors({ 
+  origin: "https://panoramasoftwares.com",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.options("*", cors());
 // app.use(cors({ origin: "http://localhost:3000" }));
+
 app.use(express.json());
 
 // Multer setup for file upload (Career form)
