@@ -15,7 +15,7 @@ const PORT = 8000;
 //   allowedHeaders: ["Content-Type", "Authorization"],
 // }));
 // app.options("*", cors());
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin: "https://panoramasoftwares.com" }));
 
 app.use(express.json());
 
