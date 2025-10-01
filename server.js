@@ -9,13 +9,14 @@ const app = express();
 const PORT = 8000;
 
 // Middleware
-// app.use(cors({ 
-//   origin: "https://panoramasoftwares.com",
-//   methods: ["GET", "POST", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "Authorization"],
-// }));
-// app.options("*", cors());
-app.use(cors({ origin: "https://panoramasoftwares.com" }));
+app.use(
+  cors({
+    origin: "http://localhost:3000", // Update with your frontend prod URL
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.options("*", cors());
 
 app.use(express.json());
 
@@ -42,6 +43,20 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper function for detailed error logging
+function logEmailError(error, routeName) {
+  console.error(`❌ Error sending email in [${routeName}]`);
+  console.error("Message:", error.message);
+  console.error("Code:", error.code);
+  console.error("Command:", error.command);
+  console.error("Stack:", error.stack);
+  try {
+    console.error("Full error object:", JSON.stringify(error, null, 2));
+  } catch {
+    console.error("Could not stringify error object");
+  }
+}
+
 // ----------- CONTACT FORM ROUTE -----------
 app.post("/contact", async (req, res) => {
   const { name, email, mobile, subject, message } = req.body;
@@ -60,10 +75,11 @@ app.post("/contact", async (req, res) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Contact email sent:", info.response);
     res.json({ success: true, message: "Message sent successfully!" });
   } catch (error) {
-    console.error("Error sending contact form email:", error);
+    logEmailError(error, "CONTACT");
     res.status(500).json({ success: false, error: "Failed to send message." });
   }
 });
@@ -119,7 +135,8 @@ Message: ${message}
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Career application email sent:", info.response);
     res.json({
       success: true,
       message: "Application submitted successfully!",
@@ -130,12 +147,29 @@ Message: ${message}
       if (err) console.error("Failed to delete resume:", err);
     });
   } catch (error) {
-    console.error("Error sending career application email:", error);
-    res
-      .status(500)
-      .json({ success: false, error: "Failed to send application." });
+    logEmailError(error, "CAREER");
+    res.status(500).json({ success: false, error: "Failed to send application." });
+  }
+});
+
+// Test route to debug quickly without forms
+app.get("/email-test", async (req, res) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.RECEIVER_EMAIL,
+    subject: "Test Email",
+    text: "This is a test email from /email-test endpoint.",
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Test email sent:", info.response);
+    res.json({ success: true, message: "Test email sent successfully!" });
+  } catch (error) {
+    logEmailError(error, "EMAIL-TEST");
+    res.status(500).json({ success: false, error: "Failed to send test email." });
   }
 });
 
 // Start Server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
